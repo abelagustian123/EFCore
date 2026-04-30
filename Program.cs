@@ -8,7 +8,8 @@ using var context = new SoccerDbContext();
 
 
 // Apply migrations
-await context.Database.EnsureCreatedAsync(); 
+//await context.Database.EnsureCreatedAsync(); 
+await ApplyMigrationsAsync(context);
 
 // Seed data
 await SeedDatabaseAsync(context);
