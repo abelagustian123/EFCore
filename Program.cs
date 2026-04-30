@@ -28,7 +28,7 @@ catch (Exception ex)
     Console.WriteLine($"Stack trace: {ex.StackTrace}");
 }
 
-
+//untuk memperbarui struktur database secara otomatis
 static async Task ApplyMigrationsAsync(SoccerDbContext context)
 {
     Console.WriteLine("Applying database migrations...");
