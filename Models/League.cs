@@ -10,6 +10,12 @@ public class League
     [MaxLength(40)]
     public string NameLeague { get; set; } = string.Empty;
     
-    
     public virtual ICollection<Club> Clubs { get; set; } = new List<Club>();
+
+    public League(string name)
+    {
+        NameLeague = name;
+    }
+    
+    public League() { }
 }

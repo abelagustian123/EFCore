@@ -5,8 +5,10 @@ using Microsoft.EntityFrameworkCore;
 
 using var context = new SoccerDbContext();
             
+
+
 // Apply migrations
-await ApplyMigrationsAsync(context);
+await context.Database.EnsureCreatedAsync(); 
 
 // Seed data
 await SeedDatabaseAsync(context);
@@ -15,6 +17,7 @@ await SeedDatabaseAsync(context);
 var leagueService = new LeagueService(context);
 var clubService = new ClubService(context);
 var playerService = new PlayerService(context);
+
 
 try
 {
@@ -50,6 +53,7 @@ static async Task SeedDatabaseAsync(SoccerDbContext context)
         new League { NameLeague = "Serie A"}
     };
     
+    //manambah data baru ke database
     context.Leagues.AddRange(leagues);
     await context.SaveChangesAsync();
 
@@ -86,35 +90,101 @@ static async Task SeedDatabaseAsync(SoccerDbContext context)
     Console.WriteLine("Database seeding completed successfully!\n");
 }
 
-// --- Demo CRUD operations untuk League ---
+// Demo CRUD operations untuk League
 static async Task DemonstrateLeagueCrudAsync(LeagueService leagueService)
 {
+    List<string> semuaLeague = new List<string>();
+    
+    Console.WriteLine("Masukkan nama league (pisahkan dengan koma):");
+    string inputLeague = Console.ReadLine()?.ToLower().Trim();
 
-    // Create
-    var newLeague = new League { NameLeague = "Bundesliga" };
-    newLeague = await leagueService.CreateLeagueAsync(newLeague);
-    Console.WriteLine($"Created League: {newLeague.NameLeague} (ID: {newLeague.LeagueId})");
-
-    // Read All
-    var leagues = await leagueService.GetAllLeaguesAsync();
-    foreach (var l in leagues)
+    if (string.IsNullOrEmpty(inputLeague))
     {
-        Console.WriteLine($"- {l.NameLeague} (Jumlah Klub: {l.Clubs?.Count ?? 0})");
+        Console.Write("nama liga tidak boleh kosong");
     }
 
-    // Update
-    newLeague.NameLeague = "Bundesliga 1";
-    var updatedLeague = await leagueService.UpdateLeagueAsync(newLeague.LeagueId, newLeague);
-    Console.WriteLine($"Updated League Name to: {updatedLeague?.NameLeague}");
+    string[] listLeague = inputLeague.Split(',', StringSplitOptions.RemoveEmptyEntries);
+    foreach (var item in listLeague)
+    {
+        semuaLeague.Add(item.Trim());
+    }
 
-    // Delete
-    var isDeleted = await leagueService.DeleteLeagueAsync(newLeague.LeagueId);
-    Console.WriteLine($"Deleted League 'Bundesliga 1': {isDeleted}");
-    
-    Console.WriteLine("========================\n");
+    // --- CREATE ---
+    Console.WriteLine("\n--- Memproses Pembuatan League ---");
+    foreach (var leagueName in semuaLeague)
+    {
+        var newLeague = new League { NameLeague = leagueName };
+        await leagueService.CreateLeagueAsync(newLeague);
+        Console.WriteLine($"Created League: {newLeague.NameLeague} (ID: {newLeague.LeagueId})");
+    }
+
+    // --- READ ALL ---
+    var leagues = await leagueService.GetAllLeaguesAsync();
+    Console.WriteLine("\n--- Daftar League di Database ---");
+    foreach (var l in leagues)
+    {
+        // Gunakan ?.Count ?? 0 untuk menghindari null error pada collection
+        Console.WriteLine($"- ID: {l.LeagueId} | Nama: {l.NameLeague} (Jumlah Klub: {l.Clubs?.Count ?? 0})");
+    }
+
+    // --- UPDATE ---
+    Console.Write("\nIngin update liga (y/n)?: ");
+    string answerUpdate = Console.ReadLine()?.ToLower().Trim();
+
+    if (answerUpdate == "y")
+    {
+        Console.Write("Masukkan ID yang ingin diupdate: ");
+        if (int.TryParse(Console.ReadLine(), out int targetIdUpdate))
+        {
+            var leagueToUpdate = leagues.FirstOrDefault(x => x.LeagueId == targetIdUpdate);
+            if (leagueToUpdate != null)
+            {
+                Console.Write($"Masukkan nama baru untuk {leagueToUpdate.NameLeague}: ");
+                string newName = Console.ReadLine()?.Trim();
+
+                if (!string.IsNullOrEmpty(newName))
+                {
+                    leagueToUpdate.NameLeague = newName;
+                    var result = await leagueService.UpdateLeagueAsync(targetIdUpdate, leagueToUpdate);
+
+                    if (result != null)
+                        Console.WriteLine($"Berhasil Update! Nama sekarang: {result.NameLeague}");
+                    else
+                        Console.WriteLine("Update gagal di database.");
+                }
+            }
+            else Console.WriteLine("ID tidak ditemukan.");
+        }
+        else Console.WriteLine("Input ID harus angka.");
+    }
+
+    // --- DELETE ---
+    Console.Write("\nIngin delete liga (y/n)?: ");
+    string answerDel = Console.ReadLine()?.ToLower().Trim();
+
+    if (answerDel == "y")
+    {
+        Console.Write("Masukkan ID yang ingin dihapus: ");
+        if (int.TryParse(Console.ReadLine(), out int targetIdDelete))
+        {
+            // Ambil data terbaru dari list untuk memastikan ID ada
+            var leagueToDelete = leagues.FirstOrDefault(x => x.LeagueId == targetIdDelete);
+            if (leagueToDelete != null)
+            {
+                bool isDeleted = await leagueService.DeleteLeagueAsync(targetIdDelete);
+                if (isDeleted)
+                    Console.WriteLine($"Berhasil menghapus League ID: {targetIdDelete}");
+                else
+                    Console.WriteLine("Gagal menghapus data.");
+            }
+            else Console.WriteLine("ID tidak ditemukan.");
+        }
+        else Console.WriteLine("Input ID harus angka.");
+    }
 }
 
-// --- Demo CRUD operations untuk Club ---
+
+// Demo CRUD operations untuk Club 
 static async Task DemonstrateClubCrudAsync(ClubService clubService)
 {
 
@@ -127,7 +197,7 @@ static async Task DemonstrateClubCrudAsync(ClubService clubService)
     var clubs = await clubService.GetAllClubsAsync();
     foreach (var c in clubs)
     {
-        Console.WriteLine($"- {c.NameClub} (Liga: {c.League?.NameLeague}), acitve ? {c.IsActive}");
+        Console.WriteLine($"- {c.NameClub} (Liga: {c.League.NameLeague}), acitve ? {c.IsActive}");
     }
 
     // Update
@@ -144,11 +214,11 @@ static async Task DemonstrateClubCrudAsync(ClubService clubService)
     Console.WriteLine("========================\n");
 }
 
-// --- Demo CRUD operations untuk Player ---
+// Demo CRUD operations untuk Player 
 static async Task DemonstratePlayerCrudAsync(PlayerService playerService)
 {
     // Create
-    var newPlayer = new Player { NamePlayer = "Bukayo Saka", Position = "Right Wing", JerseyNumber = 7, ClubId = 1 }; 
+    var newPlayer = new Player { NamePlayer = "Bukayo Saka", Position = "Right Wing", JerseyNumber = 70, ClubId = 1 }; 
     newPlayer = await playerService.CreatePlayerAsync(newPlayer);
     Console.WriteLine($"Created Player: {newPlayer.NamePlayer} (Nomor Punggung: {newPlayer.JerseyNumber})");
 
@@ -158,10 +228,6 @@ static async Task DemonstratePlayerCrudAsync(PlayerService playerService)
 
     // Update
     newPlayer.JerseyNumber = 10;
-    if (newPlayer.Club != null)
-    {
-        newPlayer.Club.ClubId = 3;
-    }
     var updatedPlayer = await playerService.UpdatePlayerAsync(newPlayer.PlayerId, newPlayer);
     Console.WriteLine($"Updated {updatedPlayer?.NamePlayer} Jersey Number to: {updatedPlayer?.JerseyNumber}");
 

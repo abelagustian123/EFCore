@@ -17,8 +17,12 @@ public class SoccerDbContext : DbContext
     {
         if (!optionsBuilder.IsConfigured)
         {
-            optionsBuilder.UseSqlite("Data Source=AppDatabase.db");
+            optionsBuilder.UseSqlite(@"Data Source=C:\Users\Abel Agustian\Documents\EntityFramework\EntityFramework\AppDatabases.db");
             optionsBuilder.EnableSensitiveDataLogging();
         }
     }
+    
+    
+    
+    
 }
